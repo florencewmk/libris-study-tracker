@@ -30,7 +30,7 @@ export default function Auth() {
   return (
     <main className="auth-shell">
       <section className="auth-story">
-        <a className="brand" href="/" aria-label="Libris home"><span className="brand-mark">L</span><span>Libris</span></a>
+        <a className="brand" href={import.meta.env.BASE_URL} aria-label="Libris home"><span className="brand-mark">L</span><span>Libris</span></a>
         <div>
           <p className="eyebrow">YOUR QUIET STUDY COMPANION</p>
           <h1>Make every study day <em>count.</em></h1>

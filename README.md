@@ -2,6 +2,8 @@
 
 Libris is an open-source, installable study tracker for recording library visits, timing focus sessions, and reviewing weekly progress. It uses ordinary email/password accounts and does not depend on ChatGPT.
 
+Live site: <https://florencewmk.github.io/libris-study-tracker/>
+
 ## Features
 
 - Email/password sign-up and login
@@ -28,9 +30,18 @@ Requirements: Node.js 22+ and pnpm.
    pnpm dev
    ```
 
-## Publish it independently
+## GitHub Pages deployment
 
-Push this directory to a public Git repository, then import it into Vercel, Netlify, or Cloudflare Pages. Set these environment variables in the host:
+The included `.github/workflows/deploy.yml` automatically builds and deploys the app to GitHub Pages whenever `main` changes. Add these repository secrets under **Settings → Secrets and variables → Actions** to enable login and cloud data:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+The site still deploys without these secrets, but shows its one-time database setup screen until they are added.
+
+## Other hosting options
+
+Import this repository into Vercel, Netlify, or Cloudflare Pages. Set these environment variables in the host:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
