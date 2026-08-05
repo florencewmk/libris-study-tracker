@@ -51,7 +51,7 @@ const formatDuration = (seconds: number) => {
 
 export default function Dashboard({ session }: { session: Session }) {
   const user = session.user;
-  const displayName = String(user.user_metadata?.display_name || "Flo");
+  const displayName = String(user.user_metadata?.display_name || "Student");
   const [initialTimer] = useState(() => readActiveTimer(user.id));
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
