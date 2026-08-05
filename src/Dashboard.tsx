@@ -4,23 +4,66 @@ import { supabase } from "./supabase";
 import type { CheckIn, StudySession } from "./types";
 
 const suggestedLocations = ["Central Library", "University Library", "City Reading Room", "Home study"];
+type ActiveTimer = {
+  sessionId: string;
+  startedAt: number;
+  accumulatedSeconds: number;
+  segmentStartedAt: number | null;
+  location: string;
+  subject: string;
+};
+
+const activeTimerKey = (userId: string) => `libris-active-timer:${userId}`;
+const readActiveTimer = (userId: string): ActiveTimer | null => {
+  try {
+    const saved = window.localStorage.getItem(activeTimerKey(userId));
+    if (!saved) return null;
+    const timer = JSON.parse(saved) as Partial<ActiveTimer>;
+    if (typeof timer.sessionId !== "string" || typeof timer.startedAt !== "number" || !Number.isFinite(timer.startedAt) || timer.startedAt <= 0 || timer.startedAt > Date.now()) return null;
+    return {
+      sessionId: timer.sessionId,
+      startedAt: timer.startedAt,
+      accumulatedSeconds: typeof timer.accumulatedSeconds === "number" && timer.accumulatedSeconds >= 0 ? timer.accumulatedSeconds : 0,
+      segmentStartedAt: typeof timer.segmentStartedAt === "number" && timer.segmentStartedAt <= Date.now() ? timer.segmentStartedAt : null,
+      location: typeof timer.location === "string" ? timer.location : "",
+      subject: typeof timer.subject === "string" ? timer.subject : "",
+    };
+  } catch {
+    return null;
+  }
+};
+
+const saveActiveTimer = (userId: string, timer: ActiveTimer) => {
+  try { window.localStorage.setItem(activeTimerKey(userId), JSON.stringify(timer)); } catch { /* Storage can be unavailable in private browsing. */ }
+};
+
+const clearActiveTimer = (userId: string) => {
+  try { window.localStorage.removeItem(activeTimerKey(userId)); } catch { /* Storage can be unavailable in private browsing. */ }
+};
+
+const elapsedSeconds = (timer: ActiveTimer) => timer.accumulatedSeconds + (timer.segmentStartedAt === null ? 0 : Math.max(0, Math.floor((Date.now() - timer.segmentStartedAt) / 1000)));
+
 const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  return hours ? `${hours}h ${minutes}m` : `${minutes || 1}m`;
+  if (hours) return `${hours}h ${minutes}m`;
+  return minutes ? `${minutes}m` : `${seconds}s`;
 };
 
 export default function Dashboard({ session }: { session: Session }) {
   const user = session.user;
   const displayName = String(user.user_metadata?.display_name || "Flo");
+  const [initialTimer] = useState(() => readActiveTimer(user.id));
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
-  const [location, setLocation] = useState(suggestedLocations[0]);
-  const [subject, setSubject] = useState("General study");
-  const [running, setRunning] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+  const [location, setLocation] = useState(initialTimer?.location || "");
+  const [subject, setSubject] = useState(initialTimer?.subject || "");
+  const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(initialTimer);
+  const [seconds, setSeconds] = useState(() => initialTimer ? elapsedSeconds(initialTimer) : 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const running = activeTimer?.segmentStartedAt != null;
+  const paused = Boolean(activeTimer && !running);
 
   async function loadData() {
     if (!supabase) return;
@@ -32,20 +75,53 @@ export default function Dashboard({ session }: { session: Session }) {
     if (issue) setError(issue.message);
     setSessions((sessionResult.data || []) as StudySession[]);
     setCheckIns((checkInResult.data || []) as CheckIn[]);
-    const latest = checkInResult.data?.[0] as CheckIn | undefined;
-    if (latest) setLocation(latest.location);
   }
 
   useEffect(() => { void loadData(); }, []);
   useEffect(() => {
-    if (!running) return;
-    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    if (!activeTimer) return;
+    const updateElapsedTime = () => setSeconds(elapsedSeconds(activeTimer));
+    updateElapsedTime();
+    const timer = window.setInterval(updateElapsedTime, 1000);
     return () => window.clearInterval(timer);
-  }, [running]);
+  }, [activeTimer]);
+  useEffect(() => {
+    if (!activeTimer) return;
+    const updatedTimer = { ...activeTimer, location, subject };
+    saveActiveTimer(user.id, updatedTimer);
+  }, [activeTimer, location, subject, user.id]);
+  useEffect(() => {
+    if (!activeTimer || !running) return;
+    const sync = () => { void syncSession(activeTimer, elapsedSeconds(activeTimer)); };
+    const syncTimer = window.setInterval(sync, 5000);
+    const saveWhenHidden = () => { if (document.visibilityState === "hidden") sync(); };
+    document.addEventListener("visibilitychange", saveWhenHidden);
+    return () => {
+      window.clearInterval(syncTimer);
+      document.removeEventListener("visibilitychange", saveWhenHidden);
+    };
+  }, [activeTimer, running, location, subject]);
+  useEffect(() => {
+    if (!activeTimer || !running) return;
+    const pauseWhenLeaving = () => {
+      const duration = elapsedSeconds(activeTimer);
+      const pausedTimer = { ...activeTimer, accumulatedSeconds: duration, segmentStartedAt: null, location, subject };
+      saveActiveTimer(user.id, pausedTimer);
+      setActiveTimer(pausedTimer);
+      setSeconds(duration);
+      void syncSession(pausedTimer, duration);
+    };
+    window.addEventListener("pagehide", pauseWhenLeaving);
+    return () => window.removeEventListener("pagehide", pauseWhenLeaving);
+  }, [activeTimer, running, location, subject, user.id]);
+  useEffect(() => {
+    if (initialTimer?.segmentStartedAt === null) void syncSession(initialTimer, initialTimer.accumulatedSeconds);
+  }, []);
 
   const todayKey = new Date().toDateString();
-  const todaySeconds = useMemo(() => sessions.filter((item) => new Date(item.started_at).toDateString() === todayKey).reduce((sum, item) => sum + item.duration_seconds, 0), [sessions, todayKey]);
-  const weekSessions = useMemo(() => sessions.filter((item) => new Date(item.started_at).getTime() >= Date.now() - 7 * 86400000), [sessions]);
+  const displayedSessions = useMemo(() => sessions.map((item) => item.id === activeTimer?.sessionId ? { ...item, duration_seconds: seconds, location: location.trim() || "Independent study", subject: subject.trim() || "General study" } : item), [sessions, activeTimer?.sessionId, seconds, location, subject]);
+  const todaySeconds = useMemo(() => displayedSessions.filter((item) => new Date(item.started_at).toDateString() === todayKey).reduce((sum, item) => sum + item.duration_seconds, 0), [displayedSessions, todayKey]);
+  const weekSessions = useMemo(() => displayedSessions.filter((item) => new Date(item.started_at).getTime() >= Date.now() - 7 * 86400000), [displayedSessions]);
   const weekSeconds = weekSessions.reduce((sum, item) => sum + item.duration_seconds, 0);
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 
@@ -57,21 +133,77 @@ export default function Dashboard({ session }: { session: Session }) {
     setBusy(false);
   }
 
-  async function toggleTimer() {
-    if (!running) { setSeconds(0); setRunning(true); return; }
-    setRunning(false);
-    if (!supabase || seconds < 1) return;
-    setBusy(true); setError("");
+  async function syncSession(timer: ActiveTimer, duration: number) {
+    if (!supabase) return false;
     const endedAt = new Date();
-    const { error: issue } = await supabase.from("study_sessions").insert({
-      user_id: user.id,
-      location: location.trim() || "Independent study",
-      subject: subject.trim() || "General study",
-      started_at: new Date(endedAt.getTime() - seconds * 1000).toISOString(),
+    const savedLocation = location.trim() || "Independent study";
+    const savedSubject = subject.trim() || "General study";
+    const { error: issue } = await supabase.from("study_sessions").update({
+      location: savedLocation,
+      subject: savedSubject,
       ended_at: endedAt.toISOString(),
-      duration_seconds: seconds,
-    });
-    if (issue) setError(issue.message); else { setSeconds(0); await loadData(); }
+      duration_seconds: Math.max(1, duration),
+    }).eq("id", timer.sessionId);
+    if (issue) { setError(issue.message); return false; }
+    setSessions((items) => items.map((item) => item.id === timer.sessionId ? { ...item, location: savedLocation, subject: savedSubject, ended_at: endedAt.toISOString(), duration_seconds: Math.max(1, duration) } : item));
+    return true;
+  }
+
+  async function startTimer() {
+    if (running || !supabase) return;
+    if (activeTimer) {
+      const resumedTimer = { ...activeTimer, segmentStartedAt: Date.now(), location, subject };
+      setActiveTimer(resumedTimer);
+      saveActiveTimer(user.id, resumedTimer);
+      return;
+    }
+    setBusy(true); setError("");
+    const startedAt = Date.now();
+    const savedLocation = location.trim() || "Independent study";
+    const savedSubject = subject.trim() || "General study";
+    const { data, error: issue } = await supabase.from("study_sessions").insert({
+      user_id: user.id,
+      location: savedLocation,
+      subject: savedSubject,
+      started_at: new Date(startedAt).toISOString(),
+      ended_at: new Date(startedAt).toISOString(),
+      duration_seconds: 1,
+    }).select().single();
+    if (issue) setError(issue.message);
+    else if (data) {
+      const timer: ActiveTimer = { sessionId: data.id, startedAt, accumulatedSeconds: 0, segmentStartedAt: startedAt, location, subject };
+      setActiveTimer(timer);
+      setSeconds(0);
+      saveActiveTimer(user.id, timer);
+      setSessions((items) => [data as StudySession, ...items.filter((item) => item.id !== data.id)]);
+    }
+    setBusy(false);
+  }
+
+  async function pauseTimer() {
+    if (!activeTimer || !running) return;
+    const duration = elapsedSeconds(activeTimer);
+    const pausedTimer = { ...activeTimer, accumulatedSeconds: duration, segmentStartedAt: null, location, subject };
+    setActiveTimer(pausedTimer);
+    setSeconds(duration);
+    saveActiveTimer(user.id, pausedTimer);
+    setBusy(true); setError("");
+    await syncSession(pausedTimer, duration);
+    setBusy(false);
+  }
+
+  async function stopTimer() {
+    if (!activeTimer) return;
+    const duration = elapsedSeconds(activeTimer);
+    setBusy(true); setError("");
+    const saved = await syncSession(activeTimer, duration);
+    if (saved) {
+      setActiveTimer(null);
+      setSeconds(0);
+      setLocation("");
+      setSubject("");
+      clearActiveTimer(user.id);
+    }
     setBusy(false);
   }
 
@@ -97,15 +229,19 @@ export default function Dashboard({ session }: { session: Session }) {
 
         <section className="dashboard-grid">
           <article className="timer-card" id="timer">
-            <div className="card-heading"><span><i className={`status-dot ${running ? "live" : ""}`} />{running ? "SESSION IN PROGRESS" : "READY TO FOCUS"}</span><b>◷</b></div>
+            <div className="card-heading"><span><i className={`status-dot ${running ? "live" : paused ? "paused" : ""}`} />{running ? "SESSION IN PROGRESS" : paused ? "SESSION PAUSED" : "READY TO FOCUS"}</span><b>◷</b></div>
             <div className="timer-display">{timerText}</div>
             <div className="timer-fields">
               <label>STUDYING AT<input list="locations" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Library, café, campus, or address" /></label>
-              <label>FOCUS<input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={80} /></label>
+              <label>FOCUS<input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={80} placeholder="Subjects, books, etc." /></label>
             </div>
             <datalist id="locations">{suggestedLocations.map((item) => <option key={item} value={item} />)}</datalist>
             <a className="maps-link" href={mapsUrl} target="_blank" rel="noreferrer">⌖ View this place in Google Maps ↗</a>
-            <button className={`button timer-button ${running ? "stop" : ""}`} onClick={toggleTimer} disabled={busy}>{busy ? "Saving…" : running ? "Finish & save session" : "Start focus session"}</button>
+            <div className="timer-actions">
+              <button className="button timer-button start" onClick={startTimer} disabled={busy || running}>{paused ? "Resume" : "Start"}</button>
+              <button className="button timer-button pause" onClick={pauseTimer} disabled={busy || !running}>Pause</button>
+              <button className="button timer-button stop" onClick={stopTimer} disabled={busy || !activeTimer}>{busy ? "Saving…" : "Stop"}</button>
+            </div>
           </article>
 
           <article className="checkin-card">
@@ -124,7 +260,7 @@ export default function Dashboard({ session }: { session: Session }) {
         <section className="history-section" id="history">
           <div className="section-title"><div><p className="eyebrow">RECENT ACTIVITY</p><h2>Your study history</h2></div><span>{sessions.length} saved sessions</span></div>
           <div className="history-list">
-            {sessions.length === 0 ? <div className="empty-state"><span>◷</span><div><b>Your first session starts here</b><p>Run the timer and your focused time will appear here.</p></div></div> : sessions.slice(0, 10).map((item) => (
+            {displayedSessions.length === 0 ? <div className="empty-state"><span>◷</span><div><b>Your first session starts here</b><p>Run the timer and your focused time will appear here.</p></div></div> : displayedSessions.slice(0, 10).map((item) => (
               <article key={item.id}><span className="history-icon">◷</span><div className="history-main"><b>{item.subject}</b><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`} target="_blank" rel="noreferrer">⌖ {item.location} ↗</a></div><div className="history-date">{new Date(item.started_at).toLocaleDateString([], { month: "short", day: "numeric" })}<small>{new Date(item.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></div><strong>{formatDuration(item.duration_seconds)}</strong></article>
             ))}
           </div>
