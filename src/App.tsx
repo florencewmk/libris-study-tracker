@@ -8,12 +8,55 @@ import { isConfigured, supabase } from "./supabase";
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authMessage, setAuthMessage] = useState("");
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false); });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
-    return () => data.subscription.unsubscribe();
+
+    let active = true;
+    let readyForAuthEvents = false;
+    async function openSession() {
+      if (!supabase) return;
+      const { data: stored } = await supabase.auth.getSession();
+      if (!stored.session) {
+        readyForAuthEvents = true;
+        if (active) setLoading(false);
+        return;
+      }
+
+      const { error: verificationError } = await supabase.auth.getUser();
+      if (!verificationError) {
+        readyForAuthEvents = true;
+        if (active) { setSession(stored.session); setLoading(false); }
+        return;
+      }
+
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+      if (!refreshError && refreshed.session) {
+        const { error: refreshedVerificationError } = await supabase.auth.getUser();
+        if (!refreshedVerificationError) {
+          readyForAuthEvents = true;
+          if (active) { setSession(refreshed.session); setLoading(false); }
+          return;
+        }
+      }
+
+      await supabase.auth.signOut({ scope: "local" });
+      readyForAuthEvents = true;
+      if (active) {
+        setSession(null);
+        setAuthMessage(/issued at future/i.test(verificationError.message)
+          ? "Your saved login could not be verified because this device's clock is out of sync. Set date and time to automatic, then log in again."
+          : "Your saved login could not be verified. Please log in again.");
+        setLoading(false);
+      }
+    }
+
+    void openSession();
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active && readyForAuthEvents) setSession(nextSession);
+    });
+    return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
   if (!isConfigured) {
@@ -32,5 +75,5 @@ export default function App() {
 
   if (loading) return <main className="loading-shell"><span className="brand-mark large">L</span><p>Opening your study space…</p></main>;
 
-  return <>{session ? <Dashboard session={session} /> : <Auth />}<InstallButton /></>;
+  return <>{session ? <Dashboard session={session} /> : <Auth initialMessage={authMessage} />}<InstallButton /></>;
 }
