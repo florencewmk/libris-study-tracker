@@ -79,6 +79,7 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(201 107
 .timer-card, .checkin-card, .stat-card { border-radius: 18px; }
 .timer-card { grid-row: span 2; padding: 27px; color: white; background: var(--green); scroll-margin-top: 20px; }
 .card-heading { display: flex; align-items: center; justify-content: space-between; color: #cedbd7; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; }
+.card-heading > b { color: #f7faf9; font-size: 28px; line-height: 1; }
 .status-dot { display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: #9cacaa; }
 .status-dot.live { background: #f29b74; box-shadow: 0 0 0 5px rgb(242 155 116 / 15%); }
 .status-dot.paused { background: #f4d39b; box-shadow: 0 0 0 5px rgb(244 211 155 / 15%); }
