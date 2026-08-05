@@ -83,9 +83,10 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(201 107
 .status-dot.paused { background: #f4d39b; box-shadow: 0 0 0 5px rgb(244 211 155 / 15%); }
 .timer-display { margin: 35px 0; font-size: clamp(52px, 7vw, 90px); font-weight: 500; letter-spacing: -5px; text-align: center; font-variant-numeric: tabular-nums; }
 .timer-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.timer-fields label { color: #aebfba; font-size: 10px; font-weight: 900; letter-spacing: 1.3px; }
-.timer-fields input { margin-top: 7px; border-color: rgb(255 255 255 / 15%); color: white; background: rgb(255 255 255 / 8%); }
-.maps-link { display: inline-block; margin: 15px 0 20px; color: #c9dbd5; font-size: 12px; font-weight: 700; }
+.timer-fields label { color: #aebfba; font-size: 11px; font-weight: 900; letter-spacing: 1.3px; }
+.timer-fields input { margin-top: 7px; border-color: white; color: #111; background: white; font-size: 11px; }
+.timer-fields input::placeholder { color: #111; opacity: .7; }
+.maps-link { display: inline-block; margin: 15px 0 20px; color: #c9dbd5; font-size: 13px; font-weight: 700; }
 .timer-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .timer-button { width: 100%; color: var(--green-dark); background: #f4b08e; }
 .timer-button.pause { background: #f4d39b; }
