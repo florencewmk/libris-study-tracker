@@ -46,7 +46,7 @@ Import this repository into Vercel, Netlify, or Cloudflare Pages. Set these envi
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-Use `pnpm build` as the build command and `dist` as the output directory. In Supabase Authentication settings, set **Site URL** to the deployed website URL and add the same URL to **Redirect URLs**.
+Use `pnpm build` as the build command and `dist` as the output directory. In Supabase Authentication settings, set **Site URL** to the full deployed website URL and add the same URL to **Redirect URLs**. For this GitHub Pages deployment, both should be `https://florencewmk.github.io/libris-study-tracker/`.
 
 The publishable Supabase key is designed for browser use. The included Row Level Security policies ensure signed-in users can only access their own records. Never expose a Supabase secret or service-role key.
 
