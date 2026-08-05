@@ -7,7 +7,7 @@ const friendlyAuthError = (message: string) => /issued at future/i.test(message)
 
 export default function Auth({ initialMessage = "" }: { initialMessage?: string }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [name, setName] = useState("Flo");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,12 +16,23 @@ export default function Auth({ initialMessage = "" }: { initialMessage?: string 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!supabase) return;
+    if (mode === "signup" && !name.trim()) {
+      setMessage("Enter your name.");
+      return;
+    }
     setBusy(true);
     setMessage("");
 
     const result = mode === "login"
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { display_name: name.trim() || "Flo" } } });
+      : await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { display_name: name.trim() },
+            emailRedirectTo: new URL(import.meta.env.BASE_URL, window.location.origin).toString(),
+          },
+        });
 
     setBusy(false);
     if (result.error) {
@@ -51,7 +62,7 @@ export default function Auth({ initialMessage = "" }: { initialMessage?: string 
           <h2>{mode === "login" ? "Log in to your study space" : "Create your study space"}</h2>
           <p>Your data is protected by your own account.</p>
 
-          {mode === "signup" && <label>Your name<input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={50} required /></label>}
+          {mode === "signup" && <label>Your name<input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="Your name" maxLength={50} required /></label>}
           <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required /></label>
           <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} required /></label>
 
