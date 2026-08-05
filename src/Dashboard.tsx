@@ -3,7 +3,6 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import type { CheckIn, StudySession } from "./types";
 
-const suggestedLocations = ["Central Library", "University Library", "City Reading Room", "Home study"];
 type ActiveTimer = {
   sessionId: string;
   startedAt: number;
@@ -207,6 +206,16 @@ export default function Dashboard({ session }: { session: Session }) {
     setBusy(false);
   }
 
+  async function deleteSession(sessionId: string) {
+    if (!supabase || sessionId === activeTimer?.sessionId) return;
+    if (!window.confirm("Delete this study session? This cannot be undone.")) return;
+    setBusy(true); setError("");
+    const { error: issue } = await supabase.from("study_sessions").delete().eq("id", sessionId);
+    if (issue) setError(issue.message);
+    else setSessions((items) => items.filter((item) => item.id !== sessionId));
+    setBusy(false);
+  }
+
   const timerText = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map((value) => String(value).padStart(2, "0")).join(":");
   const latestCheckIn = checkIns[0];
   const checkedInToday = latestCheckIn && new Date(latestCheckIn.checked_in_at).toDateString() === todayKey;
@@ -232,10 +241,9 @@ export default function Dashboard({ session }: { session: Session }) {
             <div className="card-heading"><span><i className={`status-dot ${running ? "live" : paused ? "paused" : ""}`} />{running ? "SESSION IN PROGRESS" : paused ? "SESSION PAUSED" : "READY TO FOCUS"}</span><b>◷</b></div>
             <div className="timer-display">{timerText}</div>
             <div className="timer-fields">
-              <label>STUDYING AT<input list="locations" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Library, café, campus, or address" /></label>
-              <label>FOCUS<input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={80} placeholder="Subjects, books, etc." /></label>
+              <label>STUDYING AT<input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Library, café, campus, or address" autoComplete="off" /></label>
+              <label>FOCUS<input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={80} placeholder="Subjects, books, etc." autoComplete="off" /></label>
             </div>
-            <datalist id="locations">{suggestedLocations.map((item) => <option key={item} value={item} />)}</datalist>
             <a className="maps-link" href={mapsUrl} target="_blank" rel="noreferrer">⌖ View this place in Google Maps ↗</a>
             <div className="timer-actions">
               <button className="button timer-button start" onClick={startTimer} disabled={busy || running}>{paused ? "Resume" : "Start"}</button>
@@ -248,7 +256,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <span className="location-symbol">⌖</span><p className="eyebrow">TODAY'S LIBRARY</p>
             <h2>{checkedInToday ? latestCheckIn.location : "Where are you studying?"}</h2>
             <p>{checkedInToday ? `Checked in at ${new Date(latestCheckIn.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Type a place and mark today's visit."}</p>
-            <input list="locations" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Type a place or address" />
+            <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Type a place or address" autoComplete="off" />
             <a className="maps-link light" href={mapsUrl} target="_blank" rel="noreferrer">Open in Google Maps ↗</a>
             <button className="button light wide" onClick={checkIn} disabled={busy}>Check in here</button>
           </article>
@@ -261,7 +269,7 @@ export default function Dashboard({ session }: { session: Session }) {
           <div className="section-title"><div><p className="eyebrow">RECENT ACTIVITY</p><h2>Your study history</h2></div><span>{sessions.length} saved sessions</span></div>
           <div className="history-list">
             {displayedSessions.length === 0 ? <div className="empty-state"><span>◷</span><div><b>Your first session starts here</b><p>Run the timer and your focused time will appear here.</p></div></div> : displayedSessions.slice(0, 10).map((item) => (
-              <article key={item.id}><span className="history-icon">◷</span><div className="history-main"><b>{item.subject}</b><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`} target="_blank" rel="noreferrer">⌖ {item.location} ↗</a></div><div className="history-date">{new Date(item.started_at).toLocaleDateString([], { month: "short", day: "numeric" })}<small>{new Date(item.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></div><strong>{formatDuration(item.duration_seconds)}</strong></article>
+              <article key={item.id}><span className="history-icon">◷</span><div className="history-main"><b>{item.subject}</b><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`} target="_blank" rel="noreferrer">⌖ {item.location} ↗</a></div><div className="history-date">{new Date(item.started_at).toLocaleDateString([], { month: "short", day: "numeric" })}<small>{new Date(item.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></div><strong>{formatDuration(item.duration_seconds)}</strong><button className="delete-session" onClick={() => void deleteSession(item.id)} disabled={busy || item.id === activeTimer?.sessionId} title={item.id === activeTimer?.sessionId ? "Stop this session before deleting it" : "Delete this session"} aria-label={`Delete ${item.subject} session`}>Delete</button></article>
             ))}
           </div>
         </section>
