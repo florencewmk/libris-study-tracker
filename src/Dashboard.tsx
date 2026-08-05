@@ -254,7 +254,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
           <article className="checkin-card">
             <span className="location-symbol">⌖</span><p className="eyebrow">TODAY'S LIBRARY</p>
-            <h2>{checkedInToday ? latestCheckIn.location : "Where are you studying?"}</h2>
+            <h2>{checkedInToday ? latestCheckIn.location : "Where’s today’s focus spot? 😊"}</h2>
             <p>{checkedInToday ? `Checked in at ${new Date(latestCheckIn.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Type a place and mark today's visit."}</p>
             <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Type a place or address" autoComplete="off" />
             <a className="maps-link light" href={mapsUrl} target="_blank" rel="noreferrer">Open in Google Maps ↗</a>
