@@ -241,7 +241,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <div className="card-heading"><span><i className={`status-dot ${running ? "live" : paused ? "paused" : ""}`} />{running ? "SESSION IN PROGRESS" : paused ? "SESSION PAUSED" : "READY TO FOCUS"}</span><b>◷</b></div>
             <div className="timer-display">{timerText}</div>
             <div className="timer-fields">
-              <label>STUDYING AT<input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Library, café, campus, or address" autoComplete="off" /></label>
+              <label>LOCKING IN AT<input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Library, café, campus, or address" autoComplete="off" /></label>
               <label>FOCUS<input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={80} placeholder="Subjects, books, etc." autoComplete="off" /></label>
             </div>
             <a className="maps-link" href={mapsUrl} target="_blank" rel="noreferrer">⌖ View this place in Google Maps ↗</a>
@@ -254,7 +254,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
           <article className="checkin-card">
             <span className="location-symbol">⌖</span><p className="eyebrow">TODAY'S LIBRARY</p>
-            <h2>{checkedInToday ? latestCheckIn.location : "Where’s today’s focus spot? 😊"}</h2>
+            <h2 className={checkedInToday ? undefined : "focus-spot-prompt"}>{checkedInToday ? latestCheckIn.location : "Where’s today’s focus spot? 😊"}</h2>
             <p>{checkedInToday ? `Checked in at ${new Date(latestCheckIn.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Type a place and mark today's visit."}</p>
             <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Type a place or address" autoComplete="off" />
             <a className="maps-link light" href={mapsUrl} target="_blank" rel="noreferrer">Open in Google Maps ↗</a>
