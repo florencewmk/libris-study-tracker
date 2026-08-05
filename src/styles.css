@@ -80,13 +80,17 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(201 107
 .card-heading { display: flex; align-items: center; justify-content: space-between; color: #cedbd7; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; }
 .status-dot { display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: #9cacaa; }
 .status-dot.live { background: #f29b74; box-shadow: 0 0 0 5px rgb(242 155 116 / 15%); }
+.status-dot.paused { background: #f4d39b; box-shadow: 0 0 0 5px rgb(244 211 155 / 15%); }
 .timer-display { margin: 35px 0; font-size: clamp(52px, 7vw, 90px); font-weight: 500; letter-spacing: -5px; text-align: center; font-variant-numeric: tabular-nums; }
 .timer-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .timer-fields label { color: #aebfba; font-size: 10px; font-weight: 900; letter-spacing: 1.3px; }
 .timer-fields input { margin-top: 7px; border-color: rgb(255 255 255 / 15%); color: white; background: rgb(255 255 255 / 8%); }
 .maps-link { display: inline-block; margin: 15px 0 20px; color: #c9dbd5; font-size: 12px; font-weight: 700; }
+.timer-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .timer-button { width: 100%; color: var(--green-dark); background: #f4b08e; }
+.timer-button.pause { background: #f4d39b; }
 .timer-button.stop { color: white; background: var(--terracotta); }
+.timer-button:disabled { opacity: .45; cursor: not-allowed; }
 .checkin-card { display: flex; flex-direction: column; padding: 25px; color: white; background: var(--terracotta); }
 .location-symbol { display: grid; place-items: center; width: 43px; height: 43px; margin-bottom: 18px; border-radius: 50%; color: var(--terracotta); background: white; }
 .checkin-card h2 { margin: 0 0 8px; font-size: 27px; line-height: 1.05; }
