@@ -10,7 +10,17 @@ type ActiveTimer = {
   segmentStartedAt: number | null;
   location: string;
   subject: string;
+  celebratedIntervals: number;
 };
+
+const FIREWORKS = [
+  { x: "16%", y: "24%", delay: "0s" },
+  { x: "82%", y: "20%", delay: ".3s" },
+  { x: "28%", y: "68%", delay: ".6s" },
+  { x: "74%", y: "70%", delay: ".9s" },
+  { x: "50%", y: "30%", delay: "1.15s" },
+];
+const FIREWORK_ANGLES = Array.from({ length: 12 }, (_, index) => index * 30);
 
 const activeTimerKey = (userId: string) => `libris-active-timer:${userId}`;
 const readActiveTimer = (userId: string): ActiveTimer | null => {
@@ -26,6 +36,7 @@ const readActiveTimer = (userId: string): ActiveTimer | null => {
       segmentStartedAt: typeof timer.segmentStartedAt === "number" && timer.segmentStartedAt <= Date.now() ? timer.segmentStartedAt : null,
       location: typeof timer.location === "string" ? timer.location : "",
       subject: typeof timer.subject === "string" ? timer.subject : "",
+      celebratedIntervals: typeof timer.celebratedIntervals === "number" && timer.celebratedIntervals >= 0 ? Math.floor(timer.celebratedIntervals) : 0,
     };
   } catch {
     return null;
@@ -61,6 +72,7 @@ export default function Dashboard({ session }: { session: Session }) {
   const [seconds, setSeconds] = useState(() => initialTimer ? elapsedSeconds(initialTimer) : 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [celebrationMinutes, setCelebrationMinutes] = useState<number | null>(null);
   const running = activeTimer?.segmentStartedAt != null;
   const paused = Boolean(activeTimer && !running);
 
@@ -116,6 +128,20 @@ export default function Dashboard({ session }: { session: Session }) {
   useEffect(() => {
     if (initialTimer?.segmentStartedAt === null) void syncSession(initialTimer, initialTimer.accumulatedSeconds);
   }, []);
+  useEffect(() => {
+    if (!activeTimer) return;
+    const completedIntervals = Math.floor(seconds / 1800);
+    if (completedIntervals < 1 || completedIntervals <= activeTimer.celebratedIntervals) return;
+    const celebratedTimer = { ...activeTimer, celebratedIntervals: completedIntervals };
+    setActiveTimer(celebratedTimer);
+    saveActiveTimer(user.id, celebratedTimer);
+    setCelebrationMinutes(completedIntervals * 30);
+  }, [activeTimer, seconds, user.id]);
+  useEffect(() => {
+    if (celebrationMinutes === null) return;
+    const hideCelebration = window.setTimeout(() => setCelebrationMinutes(null), 4500);
+    return () => window.clearTimeout(hideCelebration);
+  }, [celebrationMinutes]);
 
   const todayKey = new Date().toDateString();
   const displayedSessions = useMemo(() => sessions.map((item) => item.id === activeTimer?.sessionId ? { ...item, duration_seconds: seconds, location: location.trim() || "Independent study", subject: subject.trim() || "General study" } : item), [sessions, activeTimer?.sessionId, seconds, location, subject]);
@@ -170,7 +196,7 @@ export default function Dashboard({ session }: { session: Session }) {
     }).select().single();
     if (issue) setError(issue.message);
     else if (data) {
-      const timer: ActiveTimer = { sessionId: data.id, startedAt, accumulatedSeconds: 0, segmentStartedAt: startedAt, location, subject };
+      const timer: ActiveTimer = { sessionId: data.id, startedAt, accumulatedSeconds: 0, segmentStartedAt: startedAt, location, subject, celebratedIntervals: 0 };
       setActiveTimer(timer);
       setSeconds(0);
       saveActiveTimer(user.id, timer);
@@ -262,7 +288,7 @@ export default function Dashboard({ session }: { session: Session }) {
           </article>
 
           <article className="stat-card"><div><p className="eyebrow">TODAY</p><strong>{formatDuration(todaySeconds)}</strong><span>focused time</span></div><div className="mini-ring" style={{ "--progress": `${Math.min(100, todaySeconds / 108)}%` } as React.CSSProperties}><span>{Math.min(100, Math.round(todaySeconds / 108))}%</span></div></article>
-          <article className="stat-card"><div><p className="eyebrow">LAST 7 DAYS</p><strong>{formatDuration(weekSeconds)}</strong><span>{weekSessions.length} study sessions</span></div><span className="trend">↗</span></article>
+          <article className="stat-card"><div><p className="eyebrow">LAST 7 DAYS</p><strong>{formatDuration(weekSeconds)}</strong><span>{weekSessions.length} sessions</span></div><span className="trend">↗</span></article>
         </section>
 
         <section className="history-section" id="history">
@@ -274,6 +300,16 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
         </section>
       </div>
+      {celebrationMinutes !== null && (
+        <div className="celebration-overlay" role="status" aria-live="polite">
+          <div className="celebration-message"><strong>{celebrationMinutes} minutes focused!</strong><span>Beautiful work, keep going ✨</span></div>
+          {FIREWORKS.map((burst, burstIndex) => (
+            <span className="firework" key={burstIndex} style={{ "--x": burst.x, "--y": burst.y, "--delay": burst.delay } as React.CSSProperties} aria-hidden="true">
+              {FIREWORK_ANGLES.map((angle, particleIndex) => <i key={angle} style={{ "--angle": `${angle}deg`, "--particle": particleIndex } as React.CSSProperties} />)}
+            </span>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
