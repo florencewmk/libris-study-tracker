@@ -1,13 +1,17 @@
 import { FormEvent, useState } from "react";
 import { supabase } from "./supabase";
 
-export default function Auth() {
+const friendlyAuthError = (message: string) => /issued at future/i.test(message)
+  ? "This device's date or time is out of sync. Set it to automatic, refresh Libris, and try again."
+  : message;
+
+export default function Auth({ initialMessage = "" }: { initialMessage?: string }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("Flo");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -21,7 +25,7 @@ export default function Auth() {
 
     setBusy(false);
     if (result.error) {
-      setMessage(result.error.message);
+      setMessage(friendlyAuthError(result.error.message));
     } else if (mode === "signup" && !result.data.session) {
       setMessage("Check your email to confirm your account, then come back and log in.");
     }
