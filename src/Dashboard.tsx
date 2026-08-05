@@ -14,13 +14,16 @@ type ActiveTimer = {
 };
 
 const FIREWORKS = [
-  { x: "16%", y: "24%", delay: "0s" },
-  { x: "82%", y: "20%", delay: ".3s" },
-  { x: "28%", y: "68%", delay: ".6s" },
-  { x: "74%", y: "70%", delay: ".9s" },
-  { x: "50%", y: "30%", delay: "1.15s" },
+  { x: "12%", y: "18%", delay: "0s" },
+  { x: "50%", y: "13%", delay: ".25s" },
+  { x: "87%", y: "20%", delay: ".5s" },
+  { x: "23%", y: "52%", delay: ".75s" },
+  { x: "78%", y: "50%", delay: "1s" },
+  { x: "10%", y: "82%", delay: "1.25s" },
+  { x: "50%", y: "78%", delay: "1.5s" },
+  { x: "90%", y: "82%", delay: "1.8s" },
 ];
-const FIREWORK_ANGLES = Array.from({ length: 12 }, (_, index) => index * 30);
+const FIREWORK_ANGLES = Array.from({ length: 16 }, (_, index) => index * 22.5);
 
 const activeTimerKey = (userId: string) => `libris-active-timer:${userId}`;
 const readActiveTimer = (userId: string): ActiveTimer | null => {
