@@ -230,7 +230,7 @@ export default function Dashboard({ session }: { session: Session }) {
 
       <div className="dashboard-main">
         <header className="dashboard-header" id="overview">
-          <div><p className="eyebrow">YOUR STUDY SPACE</p><h1>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {displayName}.</h1><p>Small, focused steps make remarkable progress.</p></div>
+          <div><p className="eyebrow">YOUR PERSONAL SPACE</p><h1>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {displayName}.</h1><p>Small, focused steps make remarkable progress.</p></div>
           <div className="date-chip">◌ {new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric" }).format(new Date())}</div>
         </header>
 
