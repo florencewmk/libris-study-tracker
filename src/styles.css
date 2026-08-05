@@ -133,8 +133,8 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(201 107
 .celebration-message { z-index: 2; display: grid; gap: 7px; padding: 20px 28px; border: 1px solid rgb(255 255 255 / 75%); border-radius: 18px; color: var(--green-dark); background: rgb(255 253 248 / 94%); box-shadow: 0 22px 70px rgb(22 58 50 / 24%); text-align: center; animation: celebration-pop 4.5s ease both; }
 .celebration-message strong { font-size: clamp(24px, 5vw, 38px); letter-spacing: -1px; }
 .celebration-message span { color: var(--muted); font-size: 14px; }
-.firework { --distance: clamp(70px, 10vw, 125px); position: absolute; top: var(--y); left: var(--x); width: 7px; height: 7px; }
-.firework i { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: hsl(calc(var(--particle) * 29 + 12) 85% 62%); box-shadow: 0 0 8px currentColor; opacity: 0; animation: firework-burst 1.15s ease-out var(--delay) both; }
+.firework { --distance: clamp(110px, 18vw, 230px); position: absolute; top: var(--y); left: var(--x); width: 10px; height: 10px; }
+.firework i { position: absolute; width: 10px; height: 10px; border: 2px solid rgb(255 255 255 / 70%); border-radius: 50%; background: hsl(calc(var(--particle) * 23 + 12) 90% 60%); box-shadow: 0 0 10px currentColor, 0 0 22px currentColor; opacity: 0; animation: firework-burst 1.6s cubic-bezier(.08, .7, .2, 1) var(--delay) both; }
 
 @keyframes firework-burst {
   0% { opacity: 0; transform: rotate(var(--angle)) translateX(0) scale(.2); }
