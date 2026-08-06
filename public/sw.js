@@ -1,4 +1,4 @@
-const CACHE = "libris-focus-pages-v1";
+const CACHE = "libris-focus-pages-v2";
 const BASE = "/libris-focus-tracker/";
 const STATIC_ASSETS = [BASE, `${BASE}manifest.webmanifest`, `${BASE}icon-192.png`, `${BASE}icon-512.png`, `${BASE}apple-touch-icon.png`];
 
