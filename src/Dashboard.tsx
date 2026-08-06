@@ -24,6 +24,7 @@ const FIREWORKS = [
   { x: "90%", y: "82%", delay: "1.8s" },
 ];
 const FIREWORK_ANGLES = Array.from({ length: 16 }, (_, index) => index * 22.5);
+const CELEBRATION_DURATION_MS = 30_000;
 
 const activeTimerKey = (userId: string) => `libris-active-timer:${userId}`;
 const readActiveTimer = (userId: string): ActiveTimer | null => {
@@ -142,7 +143,7 @@ export default function Dashboard({ session }: { session: Session }) {
   }, [activeTimer, seconds, user.id]);
   useEffect(() => {
     if (celebrationMinutes === null) return;
-    const hideCelebration = window.setTimeout(() => setCelebrationMinutes(null), 4500);
+    const hideCelebration = window.setTimeout(() => setCelebrationMinutes(null), CELEBRATION_DURATION_MS);
     return () => window.clearTimeout(hideCelebration);
   }, [celebrationMinutes]);
 
