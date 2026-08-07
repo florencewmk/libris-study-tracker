@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import type { CheckIn, StudySession } from "./types";
@@ -14,16 +15,20 @@ type ActiveTimer = {
 };
 
 const FIREWORKS = [
-  { x: "12%", y: "18%", delay: "0s" },
-  { x: "50%", y: "13%", delay: ".25s" },
-  { x: "87%", y: "20%", delay: ".5s" },
-  { x: "23%", y: "52%", delay: ".75s" },
-  { x: "78%", y: "50%", delay: "1s" },
-  { x: "10%", y: "82%", delay: "1.25s" },
-  { x: "50%", y: "78%", delay: "1.5s" },
-  { x: "90%", y: "82%", delay: "1.8s" },
+  { x: "8%", y: "12%", delay: "0s", hue: 340, size: ".85" },
+  { x: "32%", y: "18%", delay: ".4s", hue: 38, size: "1.15" },
+  { x: "57%", y: "10%", delay: ".8s", hue: 188, size: ".95" },
+  { x: "86%", y: "16%", delay: "1.2s", hue: 275, size: "1.2" },
+  { x: "17%", y: "39%", delay: "1.6s", hue: 118, size: "1.05" },
+  { x: "48%", y: "43%", delay: "2s", hue: 322, size: "1.25" },
+  { x: "79%", y: "42%", delay: "2.4s", hue: 28, size: "1" },
+  { x: "94%", y: "57%", delay: "2.8s", hue: 196, size: ".9" },
+  { x: "7%", y: "68%", delay: "3.2s", hue: 260, size: "1.15" },
+  { x: "31%", y: "78%", delay: "3.6s", hue: 62, size: ".95" },
+  { x: "62%", y: "73%", delay: "4s", hue: 350, size: "1.2" },
+  { x: "88%", y: "86%", delay: "4.4s", hue: 150, size: "1.05" },
 ];
-const FIREWORK_ANGLES = Array.from({ length: 16 }, (_, index) => index * 22.5);
+const FIREWORK_ANGLES = Array.from({ length: 24 }, (_, index) => index * 15);
 const CELEBRATION_DURATION_MS = 30_000;
 
 const activeTimerKey = (userId: string) => `libris-active-timer:${userId}`;
@@ -304,15 +309,16 @@ export default function Dashboard({ session }: { session: Session }) {
           </div>
         </section>
       </div>
-      {celebrationMinutes !== null && (
+      {celebrationMinutes !== null && createPortal(
         <div className="celebration-overlay" role="status" aria-live="polite">
           <div className="celebration-message"><strong>{celebrationMinutes} minutes focused!</strong><span>Beautiful work, keep going ✨</span></div>
           {FIREWORKS.map((burst, burstIndex) => (
-            <span className="firework" key={burstIndex} style={{ "--x": burst.x, "--y": burst.y, "--delay": burst.delay } as React.CSSProperties} aria-hidden="true">
+            <span className="firework" key={burstIndex} style={{ "--x": burst.x, "--y": burst.y, "--delay": burst.delay, "--hue": burst.hue, "--burst-size": burst.size } as React.CSSProperties} aria-hidden="true">
               {FIREWORK_ANGLES.map((angle, particleIndex) => <i key={angle} style={{ "--angle": `${angle}deg`, "--particle": particleIndex } as React.CSSProperties} />)}
             </span>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </main>
   );
